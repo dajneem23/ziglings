@@ -1,0 +1,146 @@
+name: Check Progress and Alert Telegram
+
+on:
+  # Run on push to track progress
+  push:
+    branches:
+      - main
+      - process
+  # Run on pull request
+  pull_request:
+  # Run daily to remind about incomplete exercises
+  schedule:
+    - cron: '0 14 * * *'  # 9 PM GMT+7 (2 PM UTC) daily
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  check-progress:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.1
+
+      - name: Check progress
+        id: progress
+        run: |
+          # Read current progress
+          if [ -f .progress.txt ]; then
+            CURRENT=$(cat .progress.txt)
+          else
+            CURRENT=0
+          fi
+          
+          # Count total exercises
+          TOTAL=$(find exercises -name "*.zig" -type f | wc -l)
+          
+          # Calculate remaining
+          REMAINING=$((TOTAL - CURRENT))
+          
+          # Calculate percentage
+          if [ $TOTAL -gt 0 ]; then
+            PERCENTAGE=$((CURRENT * 100 / TOTAL))
+          else
+            PERCENTAGE=0
+          fi
+          
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          echo "percentage=$PERCENTAGE" >> $GITHUB_OUTPUT
+          
+          # Create status message
+          STATUS="📊 *Ziglings Progress Report*\n\n"
+          STATUS="${STATUS}✅ Completed: ${CURRENT}/${TOTAL} exercises\n"
+          STATUS="${STATUS}📈 Progress: ${PERCENTAGE}%\n"
+          STATUS="${STATUS}⏳ Remaining: ${REMAINING} exercises\n\n"
+          
+          if [ $REMAINING -gt 0 ]; then
+            STATUS="${STATUS}🎯 Keep going! You've got this! 💪"
+            echo "has_remaining=true" >> $GITHUB_OUTPUT
+          else
+            STATUS="${STATUS}🎉 Congratulations! All exercises completed! 🎊"
+            echo "has_remaining=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Save status message
+          echo "$STATUS" > /tmp/status_message.txt
+          
+          # Output for display
+          echo "Progress: $CURRENT/$TOTAL ($PERCENTAGE%)"
+          echo "Remaining: $REMAINING exercises"
+
+      - name: Send Telegram notification if exercises remain
+        if: steps.progress.outputs.has_remaining == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          # Read status message
+          MESSAGE=$(cat /tmp/status_message.txt)
+          
+          # Add repository info
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          MESSAGE="${MESSAGE}\n\n📁 Repository: ${REPO}\n🌿 Branch: ${BRANCH}"
+          
+          # Add trigger info
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            MESSAGE="${MESSAGE}\n⏰ Daily reminder"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            MESSAGE="${MESSAGE}\n🔔 Progress updated"
+          fi
+          
+          # URL encode the message
+          MESSAGE=$(echo -e "$MESSAGE" | jq -sRr @uri)
+          
+          # Send to Telegram
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown" \
+            -d "disable_web_page_preview=true"
+
+      - name: Send completion notification
+        if: steps.progress.outputs.has_remaining == 'false' && github.event_name == 'push'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🎉 *Congratulations!* 🎉\n\n"
+          MESSAGE="${MESSAGE}You've completed all Ziglings exercises!\n\n"
+          MESSAGE="${MESSAGE}📁 Repository: ${{ github.repository }}\n"
+          MESSAGE="${MESSAGE}🌿 Branch: ${{ github.ref_name }}"
+          
+          MESSAGE=$(echo -e "$MESSAGE" | jq -sRr @uri)
+          
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown" \
+            -d "disable_web_page_preview=true"
+
+      - name: Create progress badge
+        run: |
+          PERCENTAGE="${{ steps.progress.outputs.percentage }}"
+          CURRENT="${{ steps.progress.outputs.current }}"
+          TOTAL="${{ steps.progress.outputs.total }}"
+          
+          # Determine color based on percentage
+          if [ $PERCENTAGE -ge 80 ]; then
+            COLOR="brightgreen"
+          elif [ $PERCENTAGE -ge 50 ]; then
+            COLOR="yellow"
+          elif [ $PERCENTAGE -ge 25 ]; then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          
+          echo "Progress: ${CURRENT}/${TOTAL} (${PERCENTAGE}%) - Color: ${COLOR}"

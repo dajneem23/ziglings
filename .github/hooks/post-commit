@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# Git hook to automatically update progress when committing exercise files
+# 
+# To install this hook:
+#   cp .github/hooks/post-commit .git/hooks/post-commit
+#   chmod +x .git/hooks/post-commit
+
+# Check if any exercise files were committed
+EXERCISE_PATTERN="exercises/[0-9][0-9][0-9]_.*\.zig"
+
+# Get the list of files in the last commit
+COMMITTED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# Find the highest numbered exercise file that was committed
+HIGHEST=0
+for file in $COMMITTED_FILES; do
+    if [[ $file =~ exercises/([0-9]{3})_.*\.zig ]]; then
+        NUM=${BASH_REMATCH[1]}
+        NUM=$((10#$NUM))  # Convert to decimal (removes leading zeros)
+        if [ $NUM -gt $HIGHEST ]; then
+            HIGHEST=$NUM
+        fi
+    fi
+done
+
+# If we found exercise files and the number is higher than current progress
+if [ $HIGHEST -gt 0 ]; then
+    CURRENT=0
+    if [ -f .progress.txt ]; then
+        CURRENT=$(cat .progress.txt)
+    fi
+    
+    if [ $HIGHEST -gt $CURRENT ]; then
+        echo "📝 Detected completion of exercise $HIGHEST"
+        echo $HIGHEST > .progress.txt
+        echo "✅ Updated .progress.txt to $HIGHEST"
+        echo ""
+        echo "⚠️  Don't forget to commit .progress.txt:"
+        echo "   git add .progress.txt"
+        echo "   git commit --amend --no-edit"
+        echo "   (or create a separate commit)"
+    fi
+fi

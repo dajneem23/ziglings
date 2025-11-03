@@ -116,10 +116,20 @@ jobs:
           MESSAGE="${MESSAGE}\n\n📁 Repository: ${REPO}\n🌿 Branch: ${BRANCH}"
           
           # Add trigger info
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            MESSAGE="${MESSAGE}\n⏰ Daily reminder"
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Rotate message based on day of week
+            DAY=$(date +%u)  # 1=Monday, 7=Sunday
+            case $DAY in
+              1) MESSAGE="${MESSAGE}\n\n⏰ *MONDAY MOTIVATION*\n💪 Time to level up your Zig skills!" ;;
+              2) MESSAGE="${MESSAGE}\n\n⏰ *TUESDAY CHECK-IN*\n🔥 Ready to continue learning?" ;;
+              3) MESSAGE="${MESSAGE}\n\n⏰ *WEDNESDAY WARRIOR*\n🚀 Your daily Zig adventure awaits!" ;;
+              4) MESSAGE="${MESSAGE}\n\n⏰ *THURSDAY THRIVING*\n⚡ Keep the momentum going!" ;;
+              5) MESSAGE="${MESSAGE}\n\n⏰ *FRIDAY FEELING*\n🎉 Let's code some Zig!" ;;
+              6) MESSAGE="${MESSAGE}\n\n⏰ *WEEKEND WARRIOR*\n🌟 You've got this! 💪" ;;
+              7) MESSAGE="${MESSAGE}\n\n⏰ *SUNDAY STUDY*\n☕ Relax and learn at your pace! 🧘" ;;
+            esac
           elif [ "${{ github.event_name }}" = "push" ]; then
-            MESSAGE="${MESSAGE}\n🔔 Progress updated"
+            MESSAGE="${MESSAGE}\n\n🔔 *Progress Updated!*"
           fi
           
           # URL encode the message

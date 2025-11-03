@@ -27,6 +27,8 @@ Automatically monitors your Ziglings progress and sends Telegram notifications.
 
 - 📊 Tracks completed vs. total exercises
 - 📈 Calculates progress percentage
+- 📊 Visual progress bar in notifications
+- 📝 Shows next exercise to work on
 - ⏰ Daily reminders at 9 AM UTC
 - 🔔 Notifications on push events
 - 🎉 Celebration message on completion
@@ -129,13 +131,32 @@ When you push changes with incomplete exercises:
 
 ✅ Completed: 4/111 exercises
 📈 Progress: 3%
+`████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 3%
+
 ⏳ Remaining: 107 exercises
+📝 Next: `005_arrays2.zig`
 
 🎯 Keep going! You've got this! 💪
 
 📁 Repository: dajneem23/ziglings
 🌿 Branch: process
 🔔 Progress updated
+```
+
+When you complete all exercises:
+
+```
+🎉 Congratulations! 🎉
+
+You've completed all Ziglings exercises!
+
+✅ Completed: 111/111 exercises
+`████████████████████████████████████████` 100%
+
+📁 Repository: dajneem23/ziglings
+🌿 Branch: process
+
+🏆 Amazing work! You're now a Zig expert! 💪
 ```
 
 ## Testing Without Setup

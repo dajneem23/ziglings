@@ -53,22 +53,43 @@ jobs:
             PERCENTAGE=0
           fi
           
+          # Find next exercise
+          NEXT_NUM=$((CURRENT + 1))
+          NEXT_FILE=$(find exercises -name "$(printf '%03d' $NEXT_NUM)_*.zig" | head -1)
+          if [ -n "$NEXT_FILE" ]; then
+            NEXT_EXERCISE=$(basename "$NEXT_FILE")
+          else
+            NEXT_EXERCISE="All completed! 🎉"
+          fi
+          
+          # Create progress bar (40 characters wide)
+          BAR_WIDTH=40
+          FILLED=$((PERCENTAGE * BAR_WIDTH / 100))
+          EMPTY=$((BAR_WIDTH - FILLED))
+          PROGRESS_BAR=""
+          for i in $(seq 1 $FILLED); do PROGRESS_BAR="${PROGRESS_BAR}█"; done
+          for i in $(seq 1 $EMPTY); do PROGRESS_BAR="${PROGRESS_BAR}░"; done
+          
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
           echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
           echo "percentage=$PERCENTAGE" >> $GITHUB_OUTPUT
+          echo "next_exercise=$NEXT_EXERCISE" >> $GITHUB_OUTPUT
+          echo "progress_bar=$PROGRESS_BAR" >> $GITHUB_OUTPUT
           
           # Create status message
           STATUS="📊 *Ziglings Progress Report*\n\n"
           STATUS="${STATUS}✅ Completed: ${CURRENT}/${TOTAL} exercises\n"
           STATUS="${STATUS}📈 Progress: ${PERCENTAGE}%\n"
-          STATUS="${STATUS}⏳ Remaining: ${REMAINING} exercises\n\n"
+          STATUS="${STATUS}\`${PROGRESS_BAR}\` ${PERCENTAGE}%\n\n"
+          STATUS="${STATUS}⏳ Remaining: ${REMAINING} exercises\n"
           
           if [ $REMAINING -gt 0 ]; then
+            STATUS="${STATUS}📝 Next: \`${NEXT_EXERCISE}\`\n\n"
             STATUS="${STATUS}🎯 Keep going! You've got this! 💪"
             echo "has_remaining=true" >> $GITHUB_OUTPUT
           else
-            STATUS="${STATUS}🎉 Congratulations! All exercises completed! 🎊"
+            STATUS="${STATUS}\n🎉 Congratulations! All exercises completed! 🎊"
             echo "has_remaining=false" >> $GITHUB_OUTPUT
           fi
           
@@ -78,6 +99,8 @@ jobs:
           # Output for display
           echo "Progress: $CURRENT/$TOTAL ($PERCENTAGE%)"
           echo "Remaining: $REMAINING exercises"
+          echo "Next exercise: $NEXT_EXERCISE"
+          echo "Progress bar: [$PROGRESS_BAR]"
 
       - name: Send Telegram notification if exercises remain
         if: steps.progress.outputs.has_remaining == 'true'
@@ -116,10 +139,16 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          TOTAL="${{ steps.progress.outputs.total }}"
+          PROGRESS_BAR="${{ steps.progress.outputs.progress_bar }}"
+          
           MESSAGE="🎉 *Congratulations!* 🎉\n\n"
           MESSAGE="${MESSAGE}You've completed all Ziglings exercises!\n\n"
+          MESSAGE="${MESSAGE}✅ Completed: ${TOTAL}/${TOTAL} exercises\n"
+          MESSAGE="${MESSAGE}\`${PROGRESS_BAR}\` 100%\n\n"
           MESSAGE="${MESSAGE}📁 Repository: ${{ github.repository }}\n"
-          MESSAGE="${MESSAGE}🌿 Branch: ${{ github.ref_name }}"
+          MESSAGE="${MESSAGE}🌿 Branch: ${{ github.ref_name }}\n\n"
+          MESSAGE="${MESSAGE}🏆 Amazing work! You're now a Zig expert! 💪"
           
           MESSAGE=$(echo -e "$MESSAGE" | jq -sRr @uri)
           

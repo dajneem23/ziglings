@@ -14,6 +14,9 @@ on:
   # Allow manual trigger
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   check-progress:
     runs-on: ubuntu-latest
@@ -144,3 +147,73 @@ jobs:
           fi
           
           echo "Progress: ${CURRENT}/${TOTAL} (${PERCENTAGE}%) - Color: ${COLOR}"
+
+      - name: Update README with current status
+        if: github.event_name == 'push'
+        run: |
+          CURRENT="${{ steps.progress.outputs.current }}"
+          TOTAL="${{ steps.progress.outputs.total }}"
+          PERCENTAGE="${{ steps.progress.outputs.percentage }}"
+          
+          # Find next exercise
+          NEXT_NUM=$((CURRENT + 1))
+          NEXT_FILE=$(find exercises -name "$(printf '%03d' $NEXT_NUM)_*.zig" | head -1)
+          if [ -n "$NEXT_FILE" ]; then
+            NEXT_EXERCISE=$(basename "$NEXT_FILE")
+          else
+            NEXT_EXERCISE="None - All completed! 🎉"
+          fi
+          
+          # Get current date
+          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          
+          # Check Telegram status
+          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
+            TELEGRAM_STATUS="✅ Telegram notifications enabled"
+          else
+            TELEGRAM_STATUS="⏳ Telegram setup needed (optional)"
+          fi
+          
+          # Update the Current Status section in .github/README.md
+          if [ -f .github/README.md ]; then
+            # Create temporary file with updated status
+            awk -v current="$CURRENT" -v total="$TOTAL" -v percentage="$PERCENTAGE" \
+                -v nextex="$NEXT_EXERCISE" -v updatedate="$CURRENT_DATE" -v telegram="$TELEGRAM_STATUS" '
+              /^## Current Status$/ {
+                print $0
+                print ""
+                print "✅ Workflow created and ready to use  "
+                print "✅ Local progress checker working  "
+                print "✅ Documentation complete  "
+                print telegram "  "
+                print ""
+                print "**Your current progress:** " current "/" total " exercises (" percentage "%)  "
+                print "**Next exercise:** " nextex "  "
+                print "**Last updated:** " updatedate
+                skip=1
+                getline
+                while (getline > 0 && !/^## Support$/) { }
+                if (/^## Support$/) print $0
+                skip=0
+                getline
+              }
+              !skip { print }
+            ' .github/README.md > .github/README.md.tmp
+            
+            mv .github/README.md.tmp .github/README.md
+          fi
+
+      - name: Commit and push README updates
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Check if there are changes
+          if git diff --quiet .github/README.md; then
+            echo "No changes to commit"
+          else
+            git add .github/README.md
+            git commit -m "🤖 Auto-update progress in README [skip ci]"
+            git push
+          fi

@@ -80,8 +80,7 @@ jobs:
           # Create status message
           STATUS="📊 *Ziglings Progress Report*\n\n"
           STATUS="${STATUS}✅ Completed: ${CURRENT}/${TOTAL} exercises\n"
-          STATUS="${STATUS}📈 Progress: ${PERCENTAGE}%\n"
-          STATUS="${STATUS}\`${PROGRESS_BAR}\` ${PERCENTAGE}%\n\n"
+          STATUS="${STATUS}📈 Progress: \`${PROGRESS_BAR}\` ${PERCENTAGE}%\n\n"
           STATUS="${STATUS}⏳ Remaining: ${REMAINING} exercises\n"
           
           if [ $REMAINING -gt 0 ]; then

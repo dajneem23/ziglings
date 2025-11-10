@@ -68,7 +68,7 @@ const HeatRay = struct {
 
 pub fn main() void {
     // Look at all of these aliens of various strengths!
-    var aliens = [_]Alien{
+    var aliens = [6]Alien{
         Alien.hatch(2),
         Alien.hatch(1),
         Alien.hatch(3),

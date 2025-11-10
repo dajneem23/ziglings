@@ -25,7 +25,7 @@
 const std = @import("std");
 
 pub fn main() void {
-    const lang_chars = [_]u8{ 26, 9, 7, 42 };
+    const lang_chars = [4]u8{ 26, 9, 7, 42 };
 
     for (lang_chars) |c| {
         switch (c) {
@@ -46,6 +46,7 @@ pub fn main() void {
             // match for every possible value).  Please add an "else"
             // to this switch to print a question mark "?" when c is
             // not one of the existing matches.
+            else => std.debug.print("?", .{}),
         }
     }
 

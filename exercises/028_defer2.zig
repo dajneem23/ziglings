@@ -5,7 +5,7 @@
 const std = @import("std");
 
 pub fn main() void {
-    const animals = [_]u8{ 'g', 'c', 'd', 'd', 'g', 'z' };
+    const animals = [6]u8{ 'g', 'c', 'd', 'd', 'g', 'z' };
 
     for (animals) |a| printAnimal(a);
 
@@ -18,7 +18,7 @@ pub fn main() void {
 fn printAnimal(animal: u8) void {
     std.debug.print("(", .{});
 
-    std.debug.print(") ", .{}); // <---- how?!
+    defer std.debug.print(") ", .{}); // <---- how?!
 
     if (animal == 'g') {
         std.debug.print("Goat", .{});

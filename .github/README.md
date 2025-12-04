@@ -25,12 +25,15 @@ Automatically monitors your Ziglings progress and sends Telegram notifications.
 
 **Features:**
 
-- 📊 Tracks completed vs. total exercises
+- 📊 Tracks completed vs. total exercises (only if exercises changed)
 - 📈 Calculates progress percentage
 - 📊 Visual progress bar in notifications
 - 📝 Shows next exercise to work on
 - ⏰ Daily reminders at 9 AM UTC
-- 🔔 Notifications on push events
+- 🔔 Smart notifications on push events:
+  - 📚 Progress updates when exercises folder changes
+  - 🔬 Algorithm notifications when algorithms folder changes
+  - 🔧 Commit info for other changes
 - 📝 Sends commit messages with links to Telegram
 - 🎉 Celebration message on completion
 - 🎮 Manual trigger option
@@ -159,18 +162,52 @@ You've completed all Ziglings exercises!
 🏆 Amazing work! You're now a Zig expert! 💪
 ```
 
-**Commit Message Notification:**
+**Commit Message Notification (when exercises change):**
 
 ```
 📝 Commit Pushed
 
-💬 Message: `Fix progress calculation and improve build system`
+💬 Message: `Complete exercise 10 - if statements`
 👤 Author: Your Name
 🌿 Branch: process
+
+📚 Exercises changed
 
 📁 Repository: dajneem23/ziglings
 🔗 View Commit
 📍 SHA: `a1b2c3d`
+```
+
+**Commit Message Notification (when algorithms change):**
+
+```
+📝 Commit Pushed
+
+💬 Message: `Add binary search algorithm to algorithms collection`
+👤 Author: Your Name
+🌿 Branch: process
+
+🔬 Algorithms updated
+
+📁 Repository: dajneem23/ziglings
+🔗 View Commit
+📍 SHA: `b2c3d4e`
+```
+
+**Commit Message Notification (other changes):**
+
+```
+📝 Commit Pushed
+
+💬 Message: `Update README with new section`
+👤 Author: Your Name
+🌿 Branch: process
+
+🔧 Other changes
+
+📁 Repository: dajneem23/ziglings
+🔗 View Commit
+📍 SHA: `c3d4e5f`
 ```
 
 ## Testing Without Setup

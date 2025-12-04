@@ -101,8 +101,40 @@ jobs:
           echo "Next exercise: $NEXT_EXERCISE"
           echo "Progress bar: [$PROGRESS_BAR]"
 
+      - name: Detect changed files
+        id: changes
+        run: |
+          # Get list of changed files in this push
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Get the before and after commits
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+            
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              # New branch, check all files
+              CHANGED_FILES=$(git ls-files)
+            else
+              # Get diff between commits
+              CHANGED_FILES=$(git diff --name-only $BEFORE..$AFTER)
+            fi
+            
+            # Check if exercises folder was modified
+            EXERCISES_CHANGED=$(echo "$CHANGED_FILES" | grep -c "^exercises/" || echo 0)
+            ALGORITHMS_CHANGED=$(echo "$CHANGED_FILES" | grep -c "^algorithms/" || echo 0)
+            OTHER_CHANGED=$(echo "$CHANGED_FILES" | grep -v -E "^(exercises|algorithms)/" | wc -l)
+            
+            echo "exercises_changed=$EXERCISES_CHANGED" >> $GITHUB_OUTPUT
+            echo "algorithms_changed=$ALGORITHMS_CHANGED" >> $GITHUB_OUTPUT
+            echo "other_changed=$OTHER_CHANGED" >> $GITHUB_OUTPUT
+            
+            echo "Changed files summary:"
+            echo "  Exercises: $EXERCISES_CHANGED"
+            echo "  Algorithms: $ALGORITHMS_CHANGED"
+            echo "  Other: $OTHER_CHANGED"
+          fi
+
       - name: Send Telegram notification if exercises remain
-        if: steps.progress.outputs.has_remaining == 'true'
+        if: steps.progress.outputs.has_remaining == 'true' && steps.changes.outputs.exercises_changed > 0
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -269,18 +301,32 @@ jobs:
           COMMIT_URL="${{ github.event.head_commit.url }}"
           REPO="${{ github.repository }}"
           BRANCH="${{ github.ref_name }}"
+          EXERCISES_CHANGED="${{ steps.changes.outputs.exercises_changed }}"
+          ALGORITHMS_CHANGED="${{ steps.changes.outputs.algorithms_changed }}"
           
           # Truncate message if too long (max 200 chars)
           if [ ${#COMMIT_MSG} -gt 200 ]; then
             COMMIT_MSG="${COMMIT_MSG:0:197}..."
           fi
           
-          # Create message
+          # Create message with context about what changed
           MESSAGE="📝 *Commit Pushed*\n\n"
           MESSAGE="${MESSAGE}💬 Message: \`${COMMIT_MSG}\`\n"
           MESSAGE="${MESSAGE}👤 Author: ${COMMIT_AUTHOR}\n"
           MESSAGE="${MESSAGE}🌿 Branch: ${BRANCH}\n\n"
-          MESSAGE="${MESSAGE}📁 Repository: ${REPO}\n"
+          
+          # Add change indicators
+          if [ "$EXERCISES_CHANGED" -gt 0 ]; then
+            MESSAGE="${MESSAGE}📚 Exercises changed\n"
+          fi
+          if [ "$ALGORITHMS_CHANGED" -gt 0 ]; then
+            MESSAGE="${MESSAGE}🔬 Algorithms updated\n"
+          fi
+          if [ "$EXERCISES_CHANGED" -eq 0 ] && [ "$ALGORITHMS_CHANGED" -eq 0 ]; then
+            MESSAGE="${MESSAGE}🔧 Other changes\n"
+          fi
+          
+          MESSAGE="${MESSAGE}\n📁 Repository: ${REPO}\n"
           MESSAGE="${MESSAGE}🔗 [View Commit](${COMMIT_URL})\n"
           MESSAGE="${MESSAGE}📍 SHA: \`${COMMIT_SHA:0:7}\`"
           

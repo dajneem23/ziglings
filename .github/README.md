@@ -277,7 +277,7 @@ check-progress.sh                # Local progress checker
 
 **Your current progress:** 75/111 exercises (67%)  
 **Next exercise:** 076_sentinels.zig  
-**Last updated:** 2025-12-04 04:38 UTC
+**Last updated:** 2025-12-04 04:42 UTC
 ## Support
 
 - Full setup guide: `.github/WORKFLOW_SETUP.md`

@@ -46,18 +46,20 @@ pub fn main() !void {
 
     // Pick a random element to search for
     const target = nums[std.crypto.random.uintLessThan(usize, nums.len)];
-    
+
     if (binarySearch(u32, nums, target)) |index| {
-        std.debug.print("Found {} at index {}\n", .{target, index});
+        std.debug.print("Found {} at index {}\n", .{ target, index });
     } else {
         std.debug.print("Did not find {}\n", .{target});
     }
 
     // Test not found
-    const notFoundTarget = 99999999; 
+    const notFoundTarget = 99999999;
     if (binarySearch(u32, nums, notFoundTarget)) |index| {
-         std.debug.print("Found {} at index {}\n", .{notFoundTarget, index});
+        std.debug.print("Found {} at index {}\n", .{ notFoundTarget, index });
     } else {
-         std.debug.print("Did not find {} (as expected, mostly)\n", .{notFoundTarget});
+        std.debug.print("Did not find {} (as expected, mostly)\n", .{notFoundTarget});
     }
+    // Clean up
+    allocator.free(nums);
 }

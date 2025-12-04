@@ -1,7 +1,7 @@
 # Algorithms Checklist
 
 Based on [trekhleb/javascript-algorithms](https://github.com/trekhleb/javascript-algorithms).
-
+<!-- test -->
 ## Bit Manipulation
 - [ ] Is Power of Two
 - [ ] Bit Manipulation (General)

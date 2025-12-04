@@ -31,6 +31,7 @@ Automatically monitors your Ziglings progress and sends Telegram notifications.
 - 📝 Shows next exercise to work on
 - ⏰ Daily reminders at 9 AM UTC
 - 🔔 Notifications on push events
+- 📝 Sends commit messages with links to Telegram
 - 🎉 Celebration message on completion
 - 🎮 Manual trigger option
 - 🤖 Auto-updates this README with current progress on every push
@@ -156,6 +157,20 @@ You've completed all Ziglings exercises!
 🌿 Branch: process
 
 🏆 Amazing work! You're now a Zig expert! 💪
+```
+
+**Commit Message Notification:**
+
+```
+📝 Commit Pushed
+
+💬 Message: `Fix progress calculation and improve build system`
+👤 Author: Your Name
+🌿 Branch: process
+
+📁 Repository: dajneem23/ziglings
+🔗 View Commit
+📍 SHA: `a1b2c3d`
 ```
 
 ## Testing Without Setup

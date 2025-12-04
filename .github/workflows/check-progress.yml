@@ -307,8 +307,8 @@ jobs:
           COMMIT_URL="${{ github.event.head_commit.url }}"
           REPO="${{ github.repository }}"
           BRANCH="${{ github.ref_name }}"
-          EXERCISES_CHANGED="${{ steps.changes.outputs.exercises_changed }}"
-          ALGORITHMS_CHANGED="${{ steps.changes.outputs.algorithms_changed }}"
+          EXERCISES_CHANGED="${{ steps.changes.outputs.exercises_changed || '0' }}"
+          ALGORITHMS_CHANGED="${{ steps.changes.outputs.algorithms_changed || '0' }}"
           
           # Truncate message if too long (max 200 chars)
           if [ ${#COMMIT_MSG} -gt 200 ]; then

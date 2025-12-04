@@ -110,12 +110,18 @@ jobs:
             BEFORE="${{ github.event.before }}"
             AFTER="${{ github.event.after }}"
             
-            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              # New branch, check all files
+            # Check if commits are valid (not all zeros)
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || [ -z "$BEFORE" ]; then
+              # New branch or initial push - check all tracked files
               CHANGED_FILES=$(git ls-files)
             else
-              # Get diff between commits
-              CHANGED_FILES=$(git diff --name-only $BEFORE..$AFTER)
+              # Use git diff, but handle the case where commits might not be available
+              if git rev-parse $BEFORE $AFTER > /dev/null 2>&1; then
+                CHANGED_FILES=$(git diff --name-only $BEFORE..$AFTER 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || git ls-files)
+              else
+                # Fallback to checking HEAD
+                CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD 2>/dev/null || git ls-files)
+              fi
             fi
             
             # Check if exercises folder was modified
@@ -134,7 +140,7 @@ jobs:
           fi
 
       - name: Send Telegram notification if exercises remain
-        if: steps.progress.outputs.has_remaining == 'true' && steps.changes.outputs.exercises_changed > 0
+        if: steps.progress.outputs.has_remaining == 'true' && steps.changes.outputs.exercises_changed != '0' && github.event_name == 'push' && steps.changes.outputs.exercises_changed > 0
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -175,7 +181,7 @@ jobs:
             -d "disable_web_page_preview=true"
 
       - name: Send completion notification
-        if: steps.progress.outputs.has_remaining == 'false' && github.event_name == 'push'
+        if: steps.progress.outputs.has_remaining == 'false' && github.event_name == 'push' && steps.changes.outputs.exercises_changed != '0'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

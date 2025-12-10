@@ -15,16 +15,17 @@
 //     a != b   means "a does not equal b"
 //
 // The important thing about Zig's "if" is that it *only* accepts
-// boolean values. It won't coerce numbers or other types of data
+// boolean values. zIt won't coerce numbers or other types of data
 // to true and false.
 //
 const std = @import("std");
 
 pub fn main() void {
-    const foo = 42;
-
+    // const foo = 1;
+    const foo: u1 = @bitCast(true);
+    const foo2 = @intFromBool(true);
     // Please fix this condition:
-    if (foo) {
+    if (foo == foo2) {
         // We want our program to print this message!
         std.debug.print("Foo is 42!\n", .{});
     } else {

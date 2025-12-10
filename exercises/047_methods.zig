@@ -68,7 +68,7 @@ const HeatRay = struct {
 
 pub fn main() void {
     // Look at all of these aliens of various strengths!
-    var aliens = [_]Alien{
+    var aliens = [6]Alien{
         Alien.hatch(2),
         Alien.hatch(1),
         Alien.hatch(3),
@@ -88,7 +88,7 @@ pub fn main() void {
         for (&aliens) |*alien| {
 
             // *** Zap the alien with the heat ray here! ***
-            ???.zap(???);
+            heat_ray.zap(alien);
 
             // If the alien's health is still above 0, it's still alive.
             if (alien.health > 0) aliens_alive += 1;

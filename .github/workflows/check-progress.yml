@@ -1,0 +1,347 @@
+name: Check Progress and Alert Telegram
+
+on:
+  # Run on push to track progress
+  push:
+    branches:
+      - main
+      - process
+  # Run on pull request
+  pull_request:
+  # Run daily to remind about incomplete exercises
+  schedule:
+    - cron: '0 14 * * *'  # 9 PM GMT+7 (2 PM UTC) daily
+  # Allow manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-progress:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.1
+
+      - name: Check progress
+        id: progress
+        run: |
+          # Read current progress
+          if [ -f .progress.txt ]; then
+            CURRENT=$(cat .progress.txt)
+          else
+            CURRENT=0
+          fi
+          
+          # Count total exercises
+          TOTAL=$(find exercises -name "*.zig" -type f | wc -l)
+          
+          # Calculate remaining
+          REMAINING=$((TOTAL - CURRENT))
+          
+          # Calculate percentage
+          if [ $TOTAL -gt 0 ]; then
+            PERCENTAGE=$((CURRENT * 100 / TOTAL))
+          else
+            PERCENTAGE=0
+          fi
+          
+          # Find next exercise
+          NEXT_NUM=$((CURRENT + 1))
+          NEXT_FILE=$(find exercises -name "$(printf '%03d' $NEXT_NUM)_*.zig" | head -1)
+          if [ -n "$NEXT_FILE" ]; then
+            NEXT_EXERCISE=$(basename "$NEXT_FILE")
+          else
+            NEXT_EXERCISE="All completed! 🎉"
+          fi
+          
+          # Create progress bar (40 characters wide)
+          BAR_WIDTH=40
+          FILLED=$((PERCENTAGE * BAR_WIDTH / 100))
+          EMPTY=$((BAR_WIDTH - FILLED))
+          PROGRESS_BAR=""
+          for i in $(seq 1 $FILLED); do PROGRESS_BAR="${PROGRESS_BAR}█"; done
+          for i in $(seq 1 $EMPTY); do PROGRESS_BAR="${PROGRESS_BAR}░"; done
+          
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          echo "percentage=$PERCENTAGE" >> $GITHUB_OUTPUT
+          echo "next_exercise=$NEXT_EXERCISE" >> $GITHUB_OUTPUT
+          echo "progress_bar=$PROGRESS_BAR" >> $GITHUB_OUTPUT
+          
+          # Create status message
+          STATUS="📊 *Ziglings Progress Report*\n\n"
+          STATUS="${STATUS}✅ Completed: ${CURRENT}/${TOTAL} exercises\n"
+          STATUS="${STATUS}📈 Progress: \`${PROGRESS_BAR}\` ${PERCENTAGE}%\n\n"
+          STATUS="${STATUS}⏳ Remaining: ${REMAINING} exercises\n"
+          
+          if [ $REMAINING -gt 0 ]; then
+            STATUS="${STATUS}📝 Next: \`${NEXT_EXERCISE}\`\n\n"
+            STATUS="${STATUS}🎯 Keep going! You've got this! 💪"
+            echo "has_remaining=true" >> $GITHUB_OUTPUT
+          else
+            STATUS="${STATUS}\n🎉 Congratulations! All exercises completed! 🎊"
+            echo "has_remaining=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Save status message
+          echo "$STATUS" > /tmp/status_message.txt
+          
+          # Output for display
+          echo "Progress: $CURRENT/$TOTAL ($PERCENTAGE%)"
+          echo "Remaining: $REMAINING exercises"
+          echo "Next exercise: $NEXT_EXERCISE"
+          echo "Progress bar: [$PROGRESS_BAR]"
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          # Get list of changed files in this push
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Get the before and after commits
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+            
+            # Check if commits are valid (not all zeros)
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || [ -z "$BEFORE" ]; then
+              # New branch or initial push - check all tracked files
+              CHANGED_FILES=$(git ls-files)
+            else
+              # Use git diff, but handle the case where commits might not be available
+              if git rev-parse $BEFORE $AFTER > /dev/null 2>&1; then
+                CHANGED_FILES=$(git diff --name-only $BEFORE..$AFTER 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || git ls-files)
+              else
+                # Fallback to checking HEAD
+                CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD 2>/dev/null || git ls-files)
+              fi
+            fi
+            
+            # Check if exercises folder was modified
+            EXERCISES_CHANGED=$(echo "$CHANGED_FILES" | grep -c "^exercises/" || echo 0)
+            ALGORITHMS_CHANGED=$(echo "$CHANGED_FILES" | grep -c "^algorithms/" || echo 0)
+            OTHER_CHANGED=$(echo "$CHANGED_FILES" | grep -v -E "^(exercises|algorithms)/" | wc -l)
+            
+            echo "exercises_changed=$EXERCISES_CHANGED" >> $GITHUB_OUTPUT
+            echo "algorithms_changed=$ALGORITHMS_CHANGED" >> $GITHUB_OUTPUT
+            echo "other_changed=$OTHER_CHANGED" >> $GITHUB_OUTPUT
+            
+            echo "Changed files summary:"
+            echo "  Exercises: $EXERCISES_CHANGED"
+            echo "  Algorithms: $ALGORITHMS_CHANGED"
+            echo "  Other: $OTHER_CHANGED"
+          fi
+
+      - name: Send Telegram notification if exercises remain
+        if: steps.progress.outputs.has_remaining == 'true' && steps.changes.outputs.exercises_changed != '0' && github.event_name == 'push' && steps.changes.outputs.exercises_changed > 0
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          # Read status message
+          MESSAGE=$(cat /tmp/status_message.txt)
+          
+          # Add repository info
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          MESSAGE="${MESSAGE}\n\n📁 Repository: ${REPO}\n🌿 Branch: ${BRANCH}"
+          
+          # Add trigger info
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Rotate message based on day of week
+            DAY=$(date +%u)  # 1=Monday, 7=Sunday
+            case $DAY in
+              1) MESSAGE="${MESSAGE}\n\n⏰ *MONDAY MOTIVATION*\n💪 Time to level up your Zig skills!" ;;
+              2) MESSAGE="${MESSAGE}\n\n⏰ *TUESDAY CHECK-IN*\n🔥 Ready to continue learning?" ;;
+              3) MESSAGE="${MESSAGE}\n\n⏰ *WEDNESDAY WARRIOR*\n🚀 Your daily Zig adventure awaits!" ;;
+              4) MESSAGE="${MESSAGE}\n\n⏰ *THURSDAY THRIVING*\n⚡ Keep the momentum going!" ;;
+              5) MESSAGE="${MESSAGE}\n\n⏰ *FRIDAY FEELING*\n🎉 Let's code some Zig!" ;;
+              6) MESSAGE="${MESSAGE}\n\n⏰ *WEEKEND WARRIOR*\n🌟 You've got this! 💪" ;;
+              7) MESSAGE="${MESSAGE}\n\n⏰ *SUNDAY STUDY*\n☕ Relax and learn at your pace! 🧘" ;;
+            esac
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            MESSAGE="${MESSAGE}\n\n🔔 *Progress Updated!*"
+          fi
+          
+          # URL encode the message
+          MESSAGE=$(echo -e "$MESSAGE" | jq -sRr @uri)
+          
+          # Send to Telegram
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown" \
+            -d "disable_web_page_preview=true"
+
+      - name: Send completion notification
+        if: steps.progress.outputs.has_remaining == 'false' && github.event_name == 'push' && steps.changes.outputs.exercises_changed != '0'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          TOTAL="${{ steps.progress.outputs.total }}"
+          PROGRESS_BAR="${{ steps.progress.outputs.progress_bar }}"
+          
+          MESSAGE="🎉 *Congratulations!* 🎉\n\n"
+          MESSAGE="${MESSAGE}You've completed all Ziglings exercises!\n\n"
+          MESSAGE="${MESSAGE}✅ Completed: ${TOTAL}/${TOTAL} exercises\n"
+          MESSAGE="${MESSAGE}\`${PROGRESS_BAR}\` 100%\n\n"
+          MESSAGE="${MESSAGE}📁 Repository: ${{ github.repository }}\n"
+          MESSAGE="${MESSAGE}🌿 Branch: ${{ github.ref_name }}\n\n"
+          MESSAGE="${MESSAGE}🏆 Amazing work! You're now a Zig expert! 💪"
+          
+          MESSAGE=$(echo -e "$MESSAGE" | jq -sRr @uri)
+          
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown" \
+            -d "disable_web_page_preview=true"
+
+      - name: Create progress badge
+        run: |
+          PERCENTAGE="${{ steps.progress.outputs.percentage }}"
+          CURRENT="${{ steps.progress.outputs.current }}"
+          TOTAL="${{ steps.progress.outputs.total }}"
+          
+          # Determine color based on percentage
+          if [ $PERCENTAGE -ge 80 ]; then
+            COLOR="brightgreen"
+          elif [ $PERCENTAGE -ge 50 ]; then
+            COLOR="yellow"
+          elif [ $PERCENTAGE -ge 25 ]; then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          
+          echo "Progress: ${CURRENT}/${TOTAL} (${PERCENTAGE}%) - Color: ${COLOR}"
+
+      - name: Update README with current status
+        if: github.event_name == 'push'
+        run: |
+          CURRENT="${{ steps.progress.outputs.current }}"
+          TOTAL="${{ steps.progress.outputs.total }}"
+          PERCENTAGE="${{ steps.progress.outputs.percentage }}"
+          
+          # Find next exercise
+          NEXT_NUM=$((CURRENT + 1))
+          NEXT_FILE=$(find exercises -name "$(printf '%03d' $NEXT_NUM)_*.zig" | head -1)
+          if [ -n "$NEXT_FILE" ]; then
+            NEXT_EXERCISE=$(basename "$NEXT_FILE")
+          else
+            NEXT_EXERCISE="None - All completed! 🎉"
+          fi
+          
+          # Get current date
+          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          
+          # Check Telegram status
+          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
+            TELEGRAM_STATUS="✅ Telegram notifications enabled"
+          else
+            TELEGRAM_STATUS="⏳ Telegram setup needed (optional)"
+          fi
+          
+          # Update the Current Status section in .github/README.md
+          if [ -f .github/README.md ]; then
+            # Create temporary file with updated status
+            awk -v current="$CURRENT" -v total="$TOTAL" -v percentage="$PERCENTAGE" \
+                -v nextex="$NEXT_EXERCISE" -v updatedate="$CURRENT_DATE" -v telegram="$TELEGRAM_STATUS" '
+              /^## Current Status$/ {
+                print $0
+                print ""
+                print "✅ Workflow created and ready to use  "
+                print "✅ Local progress checker working  "
+                print "✅ Documentation complete  "
+                print telegram "  "
+                print ""
+                print "**Your current progress:** " current "/" total " exercises (" percentage "%)  "
+                print "**Next exercise:** " nextex "  "
+                print "**Last updated:** " updatedate
+                skip=1
+                getline
+                while (getline > 0 && !/^## Support$/) { }
+                if (/^## Support$/) print $0
+                skip=0
+                getline
+              }
+              !skip { print }
+            ' .github/README.md > .github/README.md.tmp
+            
+            mv .github/README.md.tmp .github/README.md
+          fi
+
+      - name: Commit and push README updates
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Check if there are changes
+          if git diff --quiet .github/README.md; then
+            echo "No changes to commit"
+          else
+            git add .github/README.md
+            git commit -m "🤖 Auto-update progress in README [skip ci]"
+            git push
+          fi
+
+      - name: Send commit message to Telegram
+        if: github.event_name == 'push' && github.event.head_commit != null
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          # Get commit info
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          COMMIT_SHA="${{ github.event.head_commit.id }}"
+          COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
+          COMMIT_URL="${{ github.event.head_commit.url }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          EXERCISES_CHANGED="${{ steps.changes.outputs.exercises_changed || '0' }}"
+          ALGORITHMS_CHANGED="${{ steps.changes.outputs.algorithms_changed || '0' }}"
+          
+          # Truncate message if too long (max 200 chars)
+          if [ ${#COMMIT_MSG} -gt 200 ]; then
+            COMMIT_MSG="${COMMIT_MSG:0:197}..."
+          fi
+          
+          # Create message with context about what changed
+          MESSAGE="📝 *Commit Pushed*\n\n"
+          MESSAGE="${MESSAGE}💬 Message: \`${COMMIT_MSG}\`\n"
+          MESSAGE="${MESSAGE}👤 Author: ${COMMIT_AUTHOR}\n"
+          MESSAGE="${MESSAGE}🌿 Branch: ${BRANCH}\n\n"
+          
+          # Add change indicators
+          if [ "$EXERCISES_CHANGED" -gt 0 ]; then
+            MESSAGE="${MESSAGE}📚 Exercises changed\n"
+          fi
+          if [ "$ALGORITHMS_CHANGED" -gt 0 ]; then
+            MESSAGE="${MESSAGE}🔬 Algorithms updated\n"
+          fi
+          if [ "$EXERCISES_CHANGED" -eq 0 ] && [ "$ALGORITHMS_CHANGED" -eq 0 ]; then
+            MESSAGE="${MESSAGE}🔧 Other changes\n"
+          fi
+          
+          MESSAGE="${MESSAGE}\n📁 Repository: ${REPO}\n"
+          MESSAGE="${MESSAGE}🔗 [View Commit](${COMMIT_URL})\n"
+          MESSAGE="${MESSAGE}📍 SHA: \`${COMMIT_SHA:0:7}\`"
+          
+          # URL encode the message
+          MESSAGE=$(echo -e "$MESSAGE" | jq -sRr @uri)
+          
+          # Send to Telegram
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown" \
+            -d "disable_web_page_preview=false"

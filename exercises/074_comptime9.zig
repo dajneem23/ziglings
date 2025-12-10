@@ -41,10 +41,10 @@ const llamas = makeLlamas(llama_count);
 // depends on one of the input arguments!
 fn makeLlamas(count: usize) [count]u8 {
     var temp: [count]u8 = undefined;
-    var i = 0;
+    comptime var i = 0;
 
     // Note that this does NOT need to be an inline 'while'.
-    while (i < count) : (i += 1) {
+    inline while (i < count) : (i += 1) {
         temp[i] = i;
     }
 

@@ -29,7 +29,7 @@ const MyNumberError = error{
 const std = @import("std");
 
 pub fn main() void {
-    const nums = [_]u8{ 2, 3, 4, 5, 6 };
+    const nums = [5]u8{ 2, 3, 4, 5, 6 };
 
     for (nums) |num| {
         std.debug.print("{}", .{num});
@@ -40,6 +40,7 @@ pub fn main() void {
         } else |err| switch (err) {
             MyNumberError.TooBig => std.debug.print(">4. ", .{}),
             // Please add a match for TooSmall here and have it print: "<4. "
+            MyNumberError.TooSmall => std.debug.print("<4. ", .{}),
         }
     }
 

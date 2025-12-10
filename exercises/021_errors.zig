@@ -9,14 +9,14 @@
 // "TooSmall". Please add it where needed!
 const MyNumberError = error{
     TooBig,
-    ???,
+    TooSmall,
     TooFour,
 };
 
 const std = @import("std");
 
 pub fn main() void {
-    const nums = [_]u8{ 2, 3, 4, 5, 6 };
+    const nums = [5]u8{ 2, 3, 4, 5, 6 };
 
     for (nums) |n| {
         std.debug.print("{}", .{n});
@@ -26,7 +26,7 @@ pub fn main() void {
         if (number_error == MyNumberError.TooBig) {
             std.debug.print(">4. ", .{});
         }
-        if (???) {
+        if (number_error == MyNumberError.TooSmall) {
             std.debug.print("<4. ", .{});
         }
         if (number_error == MyNumberError.TooFour) {

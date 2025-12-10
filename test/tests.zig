@@ -43,7 +43,7 @@ pub fn addCliTests(b: *std.Build, exercises: []const Exercise) *Step {
             cmd.expectExitCode(0);
             cmd.step.dependOn(&heal_step.step);
 
-            const stderr = cmd.captureStdErr();
+            const stderr = cmd.captureStdErr(.{});
             const verify = CheckNamedStep.create(b, ex, stderr);
             verify.step.dependOn(&cmd.step);
 
@@ -78,7 +78,7 @@ pub fn addCliTests(b: *std.Build, exercises: []const Exercise) *Step {
         cmd.expectExitCode(0);
         cmd.step.dependOn(&heal_step.step);
 
-        const stderr = cmd.captureStdErr();
+        const stderr = cmd.captureStdErr(.{});
         const verify = CheckStep.create(b, exercises, stderr);
         verify.step.dependOn(&cmd.step);
 
@@ -161,7 +161,9 @@ const CheckNamedStep = struct {
         );
         defer stderr_file.close();
 
-        var stderr = stderr_file.readerStreaming(&.{});
+        var threaded: std.Io.Threaded = .init_single_threaded;
+        const io = threaded.io();
+        var stderr = stderr_file.readerStreaming(io, &.{});
         {
             // Skip the logo.
             const nlines = mem.count(u8, root.logo, "\n");
@@ -213,7 +215,9 @@ const CheckStep = struct {
         );
         defer stderr_file.close();
 
-        var stderr = stderr_file.readerStreaming(&.{});
+        var threaded: std.Io.Threaded = .init_single_threaded;
+        const io = threaded.io();
+        var stderr = stderr_file.readerStreaming(io, &.{});
         for (exercises) |ex| {
             if (ex.number() == 1) {
                 // Skip the logo.

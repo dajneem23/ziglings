@@ -25,10 +25,9 @@ language such as C.
 
 Each exercise is self-contained and self-explained. However,
 you're encouraged to also check out these Zig language resources
-for more detail:
+for more details:
 
 * https://ziglang.org/learn/
-* https://ziglearn.org/
 * https://ziglang.org/documentation/master/
 * [Zig in Depth! (video series)](https://www.youtube.com/watch?v=MMtvGA1YhW4&list=PLtB7CL7EG7pCw7Xy1SQC53Gl8pI7aDg9t&pp=iAQB)
 
@@ -45,7 +44,7 @@ Verify the installation and build number of `zig` like so:
 
 ```
 $ zig version
-0.15.0-dev.xxxx+xxxxxxxxx
+0.16.0-dev.xxxx+xxxxxxxxx
 ```
 
 Clone this repository with Git:
@@ -73,8 +72,8 @@ the appropriate tag.
 The Zig language is under very active development. In order to be
 current, Ziglings tracks **development** builds of the Zig
 compiler rather than versioned **release** builds. The last
-stable release was `0.14.1`, but Ziglings needs a dev build with
-pre-release version "0.15.0" and a build number at least as high
+stable release was `0.15.2`, but Ziglings needs a dev build with
+pre-release version "0.16.0" and a build number at least as high
 as that shown in the example version check above.
 
 It is likely that you'll download a build which is _greater_ than
@@ -87,6 +86,9 @@ that if you update one, you may need to also update the other.
 
 ### Version Changes
 
+* *2025-11-01* zig 0.16.0-dev.1204 - more changes due to new I/O API, see [#25592](https://github.com/ziglang/zig/pull/25592)
+* *2025-09-24* zig 0.16.0-dev.377 - Enable passing file content as args, see [#25228](https://github.com/ziglang/zig/pull/25228)
+* *2025-09-03* zig 0.16.0-dev.164 - changes in reader, see [#25077](https://github.com/ziglang/zig/pull/25077)
 * *2025-08-15* zig 0.15.0-dev.1519 - changes in array list, see [#24801](https://github.com/ziglang/zig/pull/24801)
 * *2025-08-08* zig 0.15.0-dev.1380 - changes in build system, see [#24588](https://github.com/ziglang/zig/pull/24588)
 * *2025-07-22* zig 0.15.0-dev.1092 - various changes due to new I/O API, see [#24488](https://github.com/ziglang/zig/pull/24488)

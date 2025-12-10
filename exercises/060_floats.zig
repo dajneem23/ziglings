@@ -45,11 +45,11 @@ pub fn main() void {
     // conversion of 0.453592 kg to the pound.
     const shuttle_weight: f32 = 0.453592 * 4480e3;
 
-    // By default, float values are formatted in scientific
-    // notation. Try experimenting with '{d}' and '{d:.3}' to see
-
-    // how decimal formatting works.
-    print("Shuttle liftoff weight: {d:.0} metric tons\n", .{shuttle_weight / 1000});
+    // By default, float values are formatted in standard decimal
+    // notation. Experiment with '{d}' and '{d:.3}' to see how
+    // decimal formatting works, or try '{e}' and '{e:.3}' for
+    // scientific notation.
+    print("Shuttle liftoff weight: {d:.0} metric tons\n", .{shuttle_weight / 1e3});
 }
 
 // Floating further:

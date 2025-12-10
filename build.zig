@@ -15,7 +15,7 @@ const print = std.debug.print;
 //     1) Getting Started
 //     2) Version Changes
 comptime {
-    const required_zig = "0.15.0-dev.1519";
+    const required_zig = "0.16.0-dev.1204";
     const current_zig = builtin.zig_version;
     const min_zig = std.SemanticVersion.parse(required_zig) catch unreachable;
     if (current_zig.order(min_zig) == .lt) {
@@ -276,8 +276,12 @@ pub fn build(b: *Build) !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
         defer _ = gpa.deinit();
         const allocator = gpa.allocator();
-        const contents = try progress_file.readToEndAlloc(allocator, progress_file_size);
+        const contents = try allocator.alloc(u8, progress_file_size);
         defer allocator.free(contents);
+        const bytes_read = try progress_file.read(contents);
+        if (bytes_read != progress_file_size) {
+            return error.UnexpectedEOF;
+        }
 
         starting_exercise = try std.fmt.parseInt(u32, contents, 10);
     } else |err| {
@@ -508,6 +512,10 @@ const ZiglingStep = struct {
             zig_args.append("-lc") catch @panic("OOM");
         }
 
+        if (b.reference_trace) |rt| {
+            zig_args.append(b.fmt("-freference-trace={}", .{rt})) catch @panic("OOM");
+        }
+
         zig_args.append(b.pathFromRoot(path)) catch @panic("OOM");
 
         zig_args.append("--cache-dir") catch @panic("OOM");
@@ -562,12 +570,12 @@ const ZiglingStep = struct {
 
         // Render compile errors at the bottom of the terminal.
         // TODO: use the same ttyconf from the builder.
-        const ttyconf: std.io.tty.Config = if (use_color_escapes)
-            .escape_codes
+        const color: std.zig.Color = if (use_color_escapes)
+            .on
         else
-            .no_color;
+            .off;
         if (self.step.result_error_bundle.errorMessageCount() > 0) {
-            self.step.result_error_bundle.renderToStdErr(.{ .ttyconf = ttyconf });
+            self.step.result_error_bundle.renderToStdErr(.{}, color);
         }
     }
 };
@@ -722,7 +730,7 @@ const exercises = [_]Exercise{
     },
     .{
         .main_file = "009_if.zig",
-        .output = "Foo is 1!",
+        .output = "Foo is 42!",
     },
     .{
         .main_file = "010_if2.zig",
@@ -1267,7 +1275,7 @@ const exercises = [_]Exercise{
         \\Max difference (new fn): 0.014
         ,
     },
-    .{ .main_file = "110_quiz9.zig", .output = 
+    .{ .main_file = "110_quiz9.zig", .output =
     \\Toggle pins with XOR on PORTB
     \\-----------------------------
     \\  1100 // (initial state of PORTB)

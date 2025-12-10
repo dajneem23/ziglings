@@ -27,8 +27,8 @@ pub fn main() void {
     // Please fix this condition:
     if (foo == foo2) {
         // We want our program to print this message!
-        std.debug.print("Foo is 1!\n", .{});
+        std.debug.print("Foo is 42!\n", .{});
     } else {
-        std.debug.print("Foo is not 1!\n", .{});
+        std.debug.print("Foo is not 42!\n", .{});
     }
 }

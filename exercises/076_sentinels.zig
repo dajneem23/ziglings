@@ -43,7 +43,7 @@ const sentinel = @import("std").meta.sentinel;
 
 pub fn main() void {
     // Here's a zero-terminated array of u32 values:
-    var nums = [_:0]u32{ 1, 2, 3, 4, 5, 6 };
+    var nums = [6:0]u32{ 1, 2, 3, 4, 5, 6 };
 
     // And here's a zero-terminated many-item pointer:
     const ptr: [*:0]u32 = &nums;
@@ -82,7 +82,7 @@ fn printSequence(my_seq: anytype) void {
             print("Array:", .{});
 
             // Loop through the items in my_seq.
-            for (???) |s| {
+            for (my_seq) |s| {
                 print("{}", .{s});
             }
         },
@@ -94,7 +94,7 @@ fn printSequence(my_seq: anytype) void {
             // Loop through the items in my_seq until we hit the
             // sentinel value.
             var i: usize = 0;
-            while (??? != my_sentinel) {
+            while (my_seq[i] != my_sentinel) {
                 print("{}", .{my_seq[i]});
                 i += 1;
             }

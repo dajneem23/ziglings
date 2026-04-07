@@ -140,7 +140,7 @@ jobs:
           fi
 
       - name: Send Telegram notification if exercises remain
-        if: steps.progress.outputs.has_remaining == 'true' && steps.changes.outputs.exercises_changed != '0' && github.event_name == 'push' && steps.changes.outputs.exercises_changed > 0
+        if: steps.progress.outputs.has_remaining == 'true' && steps.changes.outputs.exercises_changed != '0' && github.event_name == 'push'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -295,7 +295,7 @@ jobs:
           fi
 
       - name: Send commit message to Telegram
-        if: github.event_name == 'push' && github.event.head_commit != null
+        if: github.event_name == 'push' && github.event.head_commit != null && (steps.changes.outputs.exercises_changed != '0' || steps.changes.outputs.algorithms_changed != '0')
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

@@ -277,7 +277,7 @@ check-progress.sh                # Local progress checker
 
 **Your current progress:** 83/111 exercises (74%)  
 **Next exercise:** 084_async.zig  
-**Last updated:** 2026-04-07 10:32 UTC
+**Last updated:** 2026-04-08 02:37 UTC
 ## Support
 
 - Full setup guide: `.github/WORKFLOW_SETUP.md`

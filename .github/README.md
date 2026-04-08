@@ -275,9 +275,9 @@ check-progress.sh                # Local progress checker
 ✅ Documentation complete  
 ✅ Telegram notifications enabled  
 
-**Your current progress:** 83/111 exercises (74%)  
-**Next exercise:** 084_async.zig  
-**Last updated:** 2026-04-08 02:37 UTC
+**Your current progress:** 106/111 exercises (95%)  
+**Next exercise:** 107_files2.zig  
+**Last updated:** 2026-04-08 02:43 UTC
 ## Support
 
 - Full setup guide: `.github/WORKFLOW_SETUP.md`

@@ -40,8 +40,16 @@ jobs:
             CURRENT=0
           fi
           
-          # Count total exercises
-          TOTAL=$(find exercises -name "*.zig" -type f | wc -l)
+          # Count total exercises (excluding 999_the_end.zig)
+          TOTAL=$(find exercises -name "*.zig" -type f ! -name "999_*.zig" | wc -l)
+          
+          # Check if completed (either reached TOTAL or special marker 999)
+          if [ $CURRENT -eq 999 ] || [ $CURRENT -ge $TOTAL ]; then
+            CURRENT=$TOTAL
+            IS_COMPLETE=true
+          else
+            IS_COMPLETE=false
+          fi
           
           # Calculate remaining
           REMAINING=$((TOTAL - CURRENT))
@@ -83,13 +91,13 @@ jobs:
           STATUS="${STATUS}📈 Progress: \`${PROGRESS_BAR}\` ${PERCENTAGE}%\n\n"
           STATUS="${STATUS}⏳ Remaining: ${REMAINING} exercises\n"
           
-          if [ $REMAINING -gt 0 ]; then
+          if [ "$IS_COMPLETE" = "true" ]; then
+            STATUS="${STATUS}\n🎉 Congratulations! All exercises completed! 🎊"
+            echo "has_remaining=false" >> $GITHUB_OUTPUT
+          else
             STATUS="${STATUS}📝 Next: \`${NEXT_EXERCISE}\`\n\n"
             STATUS="${STATUS}🎯 Keep going! You've got this! 💪"
             echo "has_remaining=true" >> $GITHUB_OUTPUT
-          else
-            STATUS="${STATUS}\n🎉 Congratulations! All exercises completed! 🎊"
-            echo "has_remaining=false" >> $GITHUB_OUTPUT
           fi
           
           # Save status message

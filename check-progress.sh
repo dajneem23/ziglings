@@ -19,8 +19,16 @@ else
     CURRENT=0
 fi
 
-# Count total exercises
-TOTAL=$(find exercises -name "*.zig" -type f | wc -l | tr -d ' ')
+# Count total exercises (excluding 999_the_end.zig)
+TOTAL=$(find exercises -name "*.zig" -type f ! -name "999_*.zig" | wc -l | tr -d ' ')
+
+# Check if completed (either reached TOTAL or special marker 999)
+if [ $CURRENT -eq 999 ] || [ $CURRENT -ge $TOTAL ]; then
+    CURRENT=$TOTAL
+    IS_COMPLETE=true
+else
+    IS_COMPLETE=false
+fi
 
 # Calculate remaining and percentage
 REMAINING=$((TOTAL - CURRENT))
@@ -48,7 +56,9 @@ for ((i=$FILLED; i<$BAR_LENGTH; i++)); do printf "░"; done
 printf "] ${PERCENTAGE}%%${NC}\n"
 echo ""
 
-if [ $REMAINING -gt 0 ]; then
+if [ "$IS_COMPLETE" = "true" ]; then
+    echo -e "${GREEN}🎉 Congratulations! All exercises completed! 🎊${NC}"
+else
     echo -e "${YELLOW}🎯 Keep going! You've got this! 💪${NC}"
     
     # Show next exercise
@@ -57,8 +67,6 @@ if [ $REMAINING -gt 0 ]; then
     if [ -n "$NEXT_FILE" ]; then
         echo -e "${BLUE}📝 Next exercise:${NC} $(basename $NEXT_FILE)"
     fi
-else
-    echo -e "${GREEN}🎉 Congratulations! All exercises completed! 🎊${NC}"
 fi
 
 echo ""
